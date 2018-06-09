@@ -229,11 +229,16 @@ def expect_invalid(schema, rules, query, expected_errors, sort_list=True):
             for loc in error['locations']
         ]
 
+    errors = list(map(format_error, errors))
     if sort_list:
-        assert sort_lists(list(map(format_error, errors))) == sort_lists(expected_errors)
+        expected_errors = sort_lists(expected_errors)
+        errors = sort_lists(errors)
+        msg = 'expected errors: %s, got errors: %s' % (expected_errors, errors)
+        assert errors == expected_errors, msg
 
     else:
-        assert list(map(format_error, errors)) == expected_errors
+        msg = 'expected errors: %s, got errors: %s' % (expected_errors, errors)
+        assert errors == expected_errors, msg
 
 
 def expect_passes_rule(rule, query):
