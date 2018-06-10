@@ -44,7 +44,9 @@ def test_variables_with_valid_default_values():
     query WithDefaultValues(
         $a: Int = 1,
         $b: String = "ok",
-        $c: ComplexInput = { requiredField: true, intField: 3 }
+        $c: ComplexInput = { requiredField: true, intField: 3 },
+        $d: ComplexInputl = null,
+        $d: [Int] = null
     ) {
         dog { name }
     }

@@ -17,7 +17,7 @@ def is_valid_literal_value(type, value_ast):
     if not value_ast:
         return _empty_list
 
-    if isinstance(value_ast, ast.Variable):
+    if isinstance(value_ast, (ast.Variable, ast.NullValue)):
         return _empty_list
 
     if isinstance(type, GraphQLList):
@@ -59,9 +59,6 @@ def is_valid_literal_value(type, value_ast):
         return errors
 
     assert isinstance(type, (GraphQLScalarType, GraphQLEnumType)), 'Must be input type'
-
-    if isinstance(value_ast, ast.NullValue):
-        return _empty_list
 
     parse_result = type.parse_literal(value_ast)
     if parse_result is None:
