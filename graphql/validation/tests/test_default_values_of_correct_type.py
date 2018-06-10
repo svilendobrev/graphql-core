@@ -67,7 +67,8 @@ def test_variables_with_invalid_default_values():
     query InvalidDefaultValues(
         $a: Int = "one",
         $b: String = 4,
-        $c: ComplexInput = "notverycomplex"
+        $c: ComplexInput = "notverycomplex",
+        $d: Int! = null
     ) {
         dog { name }
     }
@@ -76,7 +77,9 @@ def test_variables_with_invalid_default_values():
         bad_value('b', 'String', '4', 4, 22),
         bad_value('c', 'ComplexInput', '"notverycomplex"', 5, 28, [
             'Expected "ComplexInput", found not an object.'
-        ])
+        ]),
+        bad_value('d', 'Int!', 'null', 6, 20),
+        default_for_non_null_arg('d', 'Int!', 'Int', 6, 20)
     ])
 
 
