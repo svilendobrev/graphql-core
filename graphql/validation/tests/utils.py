@@ -233,7 +233,7 @@ def expect_invalid(schema, rules, query, expected_errors, sort_list=True):
     if sort_list:
         expected_errors = sort_lists(expected_errors)
         errors = sort_lists(errors)
-        msg = 'expected errors: %s, got errors: %s' % (expected_errors, errors)
+        msg = '\nExpected errors:\n  %s,\nActual errors:\n  %s' % (expected_errors, errors)
         assert errors == expected_errors, msg
 
     else:
