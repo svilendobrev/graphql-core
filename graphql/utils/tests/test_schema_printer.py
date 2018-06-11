@@ -156,6 +156,22 @@ type Root {
 '''
 
 
+def test_prints_string_field_with_int_arg_with_default_null():
+    output = print_single_field_schema(GraphQLField(
+        type=GraphQLString,
+        args={'argOne': GraphQLArgument(GraphQLInt, default_value=None)}
+    ))
+    assert output == '''
+schema {
+  query: Root
+}
+
+type Root {
+  singleField(argOne: Int = null): String
+}
+'''
+
+
 def test_prints_string_field_with_non_null_int_arg():
     output = print_single_field_schema(GraphQLField(
         type=GraphQLString,
@@ -447,6 +463,72 @@ schema {
 
 input InputType {
   int: Int
+}
+
+type Root {
+  str(argOne: InputType): String
+}
+'''
+
+
+def test_prints_input_type_with_default():
+    InputType = GraphQLInputObjectType(
+        name='InputType',
+        fields={
+            'int': GraphQLInputObjectField(GraphQLInt, default_value=2)
+        }
+    )
+
+    Root = GraphQLObjectType(
+        name='Root',
+        fields={
+            'str': GraphQLField(GraphQLString, args={'argOne': GraphQLArgument(InputType)})
+        }
+    )
+
+    Schema = GraphQLSchema(Root)
+    output = print_for_test(Schema)
+
+    assert output == '''
+schema {
+  query: Root
+}
+
+input InputType {
+  int: Int = 2
+}
+
+type Root {
+  str(argOne: InputType): String
+}
+'''
+
+
+def test_prints_input_type_with_default_null():
+    InputType = GraphQLInputObjectType(
+        name='InputType',
+        fields={
+            'int': GraphQLInputObjectField(GraphQLInt, default_value=None)
+        }
+    )
+
+    Root = GraphQLObjectType(
+        name='Root',
+        fields={
+            'str': GraphQLField(GraphQLString, args={'argOne': GraphQLArgument(InputType)})
+        }
+    )
+
+    Schema = GraphQLSchema(Root)
+    output = print_for_test(Schema)
+
+    assert output == '''
+schema {
+  query: Root
+}
+
+input InputType {
+  int: Int = null
 }
 
 type Root {
