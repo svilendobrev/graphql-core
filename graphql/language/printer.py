@@ -1,6 +1,7 @@
 import json
 
 from .visitor import Visitor, visit
+from ..utils.undefined import UndefinedDefaultValue
 
 __all__ = ['print_ast']
 
@@ -34,7 +35,7 @@ class PrintingVisitor(Visitor):
         return join([op, join([name, var_defs]), directives, selection_set], ' ')
 
     def leave_VariableDefinition(self, node, *args):
-        return node.variable + ': ' + node.type + wrap(' = ', node.default_value)
+        return node.variable + ': ' + node.type + wrap(' = ', node.default_value, is_default_value=True)
 
     def leave_SelectionSet(self, node, *args):
         return block(node.selections)
@@ -146,7 +147,7 @@ class PrintingVisitor(Visitor):
         )
 
     def leave_InputValueDefinition(self, node, *args):
-        return node.name + ': ' + node.type + wrap(' = ', node.default_value) + wrap(' ', join(node.directives, ' '))
+        return node.name + ': ' + node.type + wrap(' = ', node.default_value, is_default_value=True) + wrap(' ', join(node.directives, ' '))
 
     def leave_InterfaceTypeDefinition(self, node, *args):
         return 'interface ' + node.name + wrap(' ', join(node.directives, ' ')) + ' ' + block(node.fields)
@@ -184,7 +185,13 @@ def block(_list):
     return '{}'
 
 
-def wrap(start, maybe_str, end=''):
+def wrap(start, maybe_str, end='', is_default_value=False):
+    if is_default_value:
+        if maybe_str is not UndefinedDefaultValue:
+            s = 'null' if maybe_str is None else maybe_str
+            return start + s + end
+        return ''
+
     if maybe_str:
         return start + maybe_str + end
     return ''
