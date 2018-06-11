@@ -4,6 +4,7 @@ from graphql import Source, parse
 from graphql.error import GraphQLSyntaxError
 from graphql.language import ast
 from graphql.language.parser import Loc
+from graphql.utils.undefined import UndefinedDefaultValue
 
 
 def create_loc_fn(body):
@@ -364,7 +365,7 @@ type Hello {
                                     ),
                                     loc=loc(28, 35)
                                 ),
-                                default_value=None,
+                                default_value=UndefinedDefaultValue,
                                 directives=[],
                                 loc=loc(22, 35)
                             )
@@ -490,7 +491,7 @@ type Hello {
                                     ),
                                     loc=loc(30, 38)
                                 ),
-                                default_value=None,
+                                default_value=UndefinedDefaultValue,
                                 directives=[],
                                 loc=loc(22, 38)
                             )
@@ -549,7 +550,7 @@ type Hello {
                                     ),
                                     loc=loc(30, 37)
                                 ),
-                                default_value=None,
+                                default_value=UndefinedDefaultValue,
                                 directives=[],
                                 loc=loc(22, 37)
                             ),
@@ -565,7 +566,7 @@ type Hello {
                                     ),
                                     loc=loc(47, 50)
                                 ),
-                                default_value=None,
+                                default_value=UndefinedDefaultValue,
                                 directives=[],
                                 loc=loc(39, 50)
                             )
@@ -702,7 +703,7 @@ input Hello {
                             ),
                             loc=loc(24, 30)
                         ),
-                        default_value=None,
+                        default_value=UndefinedDefaultValue,
                         directives=[],
                         loc=loc(17, 30)
                     )
