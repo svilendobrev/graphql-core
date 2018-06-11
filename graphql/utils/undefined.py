@@ -20,6 +20,9 @@ class _UndefinedDefaultValue(object):
     def __eq__(self, other):
         return isinstance(other, _UndefinedDefaultValue)
 
+    def __copy__(self):
+        return self
+
     def __repr__(self):
         return 'UndefinedDefaultValue'
 

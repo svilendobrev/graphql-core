@@ -4,6 +4,7 @@ from graphql.language.parser import Loc
 from graphql.utils.ast_to_code import ast_to_code
 
 from ...language.tests import fixtures
+from ...utils.undefined import UndefinedDefaultValue
 
 
 def test_ast_to_code_using_kitchen_sink():
@@ -12,5 +13,10 @@ def test_ast_to_code_using_kitchen_sink():
     source = Source(fixtures.KITCHEN_SINK)
     loc = lambda start, end: Loc(start, end, source)
 
-    parsed_code_ast = eval(code_ast, {}, {'ast': ast, 'loc': loc})
+    locals_ = {
+        'ast': ast,
+        'loc': loc,
+        'UndefinedDefaultValue': UndefinedDefaultValue,
+    }
+    parsed_code_ast = eval(code_ast, {}, locals_)
     assert doc == parsed_code_ast

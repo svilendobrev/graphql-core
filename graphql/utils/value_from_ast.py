@@ -12,6 +12,9 @@ def value_from_ast(value_ast, type, variables=None):
         # We're assuming that this query has been validated and the value used here is of the correct type.
         return value_from_ast(value_ast, type.of_type, variables)
 
+    if value_ast is UndefinedDefaultValue:
+        return value_ast
+
     if value_ast is None:
         return None
 

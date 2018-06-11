@@ -11,6 +11,8 @@ __all__ = ['parse']
 
 def parse(source, **kwargs):
     """Given a GraphQL source, parses it into a Document."""
+    if source is None:
+        return source
     options = {'no_location': False, 'no_source': False}
     options.update(kwargs)
     source_obj = source
@@ -23,6 +25,8 @@ def parse(source, **kwargs):
 
 
 def parse_value(source, **kwargs):
+    if source is None:
+        return source
     options = {'no_location': False, 'no_source': False}
     options.update(kwargs)
     source_obj = source

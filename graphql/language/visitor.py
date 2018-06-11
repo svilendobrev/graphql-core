@@ -80,7 +80,8 @@ def visit(root, visitor, key_map=None):
 
                         else:
                             setattr(node, edit_key, edit_value)
-
+            if not stack:
+                break
             index = stack.index
             keys = stack.keys
             edits = stack.edits
