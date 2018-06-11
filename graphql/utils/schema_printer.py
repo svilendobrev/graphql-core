@@ -4,6 +4,7 @@ from ..type.definition import (GraphQLEnumType, GraphQLInputObjectType,
                                GraphQLScalarType, GraphQLUnionType)
 from ..type.directives import DEFAULT_DEPRECATION_REASON
 from .ast_from_value import ast_from_value
+from ..utils.undefined import UndefinedDefaultValue
 
 
 def print_schema(schema):
@@ -153,7 +154,7 @@ def _print_args(field_or_directives):
 
 
 def _print_input_value(name, arg):
-    if arg.default_value is not None:
+    if arg.default_value is not UndefinedDefaultValue:
         default_value = ' = ' + print_ast(ast_from_value(arg.default_value, arg.type))
     else:
         default_value = ''
