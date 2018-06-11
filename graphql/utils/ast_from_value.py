@@ -8,11 +8,15 @@ from ..language import ast
 from ..type.definition import (GraphQLEnumType, GraphQLInputObjectType,
                                GraphQLList, GraphQLNonNull)
 from ..type.scalars import GraphQLFloat
+from ..utils.undefined import UndefinedDefaultValue
 
 
 def ast_from_value(value, type=None):
     if isinstance(type, GraphQLNonNull):
         return ast_from_value(value, type.of_type)
+
+    if value is UndefinedDefaultValue:
+        return
 
     if value is None:
         return ast.NullValue()

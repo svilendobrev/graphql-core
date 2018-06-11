@@ -1,6 +1,7 @@
 from ..language import ast
 from ..type import (GraphQLEnumType, GraphQLInputObjectType, GraphQLList,
                     GraphQLNonNull, GraphQLScalarType)
+from ..utils.undefined import UndefinedDefaultValue
 
 
 def value_from_ast(value_ast, type, variables=None):
@@ -48,7 +49,7 @@ def value_from_ast(value_ast, type, variables=None):
         obj = {}
         for field_name, field in fields.items():
             if field_name not in field_asts:
-                if field.default_value is not None:
+                if field.default_value is not UndefinedDefaultValue:
                     # We use out_name as the output name for the
                     # dict if exists
                     obj[field.out_name or field_name] = field.default_value
