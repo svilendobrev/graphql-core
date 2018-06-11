@@ -5,6 +5,7 @@ from ..language import ast
 from ..pyutils.cached_property import cached_property
 from ..pyutils.ordereddict import OrderedDict
 from ..utils.assert_valid_name import assert_valid_name
+from ..utils.undefined import UndefinedDefaultValue
 
 
 def is_type(type):
@@ -265,7 +266,7 @@ class GraphQLField(object):
 class GraphQLArgument(object):
     __slots__ = 'type', 'default_value', 'description', 'out_name'
 
-    def __init__(self, type, default_value=None, description=None, out_name=None):
+    def __init__(self, type, default_value=UndefinedDefaultValue, description=None, out_name=None):
         self.type = type
         self.default_value = default_value
         self.description = description
@@ -544,7 +545,7 @@ class GraphQLInputObjectType(GraphQLType):
 class GraphQLInputObjectField(object):
     __slots__ = 'type', 'default_value', 'description', 'out_name'
 
-    def __init__(self, type, default_value=None, description=None, out_name=None):
+    def __init__(self, type, default_value=UndefinedDefaultValue, description=None, out_name=None):
         self.type = type
         self.default_value = default_value
         self.description = description
@@ -609,7 +610,7 @@ class GraphQLNonNull(GraphQLType):
 
     Note: the enforcement of non-nullability occurs within the executor.
     """
-    __slots__ = 'of_type',
+    __slots__ = 'of_type'
 
     def __init__(self, type):
         assert is_type(type) and not isinstance(type, GraphQLNonNull), (
