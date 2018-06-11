@@ -12,6 +12,7 @@ from ..type.introspection import (TypeKind, __Directive, __DirectiveLocation,
                                   __EnumValue, __Field, __InputValue, __Schema,
                                   __Type, __TypeKind)
 from .value_from_ast import value_from_ast
+from ..utils.undefined import UndefinedDefaultValue
 
 
 def _false(*_):
@@ -188,9 +189,10 @@ def build_client_schema(introspection):
         ])
 
     def build_default_value(f):
-        default_value = f.get('defaultValue')
-        if default_value is None:
-            return None
+        try:
+            default_value = f['defaultValue']
+        except KeyError:
+            return UndefinedDefaultValue
 
         return value_from_ast(parse_value(default_value), get_input_type(f['type']))
 
