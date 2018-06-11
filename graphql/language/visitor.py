@@ -4,6 +4,7 @@ import six
 
 from . import ast
 from .visitor_meta import QUERY_DOCUMENT_KEYS, VisitorMeta
+from ..utils.undefined import UndefinedDefaultValue
 
 
 class Falsey(object):
@@ -99,7 +100,7 @@ def visit(root, visitor, key_map=None):
                 key = None
                 node = new_root
 
-            if node is REMOVE or node is None:
+            if node is REMOVE or node is None or node is UndefinedDefaultValue:
                 continue
 
             if parent:

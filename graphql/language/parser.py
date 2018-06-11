@@ -4,6 +4,7 @@ from . import ast
 from ..error import GraphQLSyntaxError
 from .lexer import Lexer, TokenKind, get_token_desc, get_token_kind_desc
 from .source import Source
+from ..utils.undefined import UndefinedDefaultValue
 
 __all__ = ['parse']
 
@@ -275,7 +276,7 @@ def parse_variable_definition(parser):
     return ast.VariableDefinition(
         variable=parse_variable(parser),
         type=expect(parser, TokenKind.COLON) and parse_type(parser),
-        default_value=parse_value_literal(parser, True) if skip(parser, TokenKind.EQUALS) else None,
+        default_value=parse_value_literal(parser, True) if skip(parser, TokenKind.EQUALS) else UndefinedDefaultValue,
         loc=loc(parser, start)
     )
 
@@ -666,7 +667,7 @@ def parse_input_value_def(parser):
     return ast.InputValueDefinition(
         name=parse_name(parser),
         type=expect(parser, TokenKind.COLON) and parse_type(parser),
-        default_value=parse_const_value(parser) if skip(parser, TokenKind.EQUALS) else None,
+        default_value=parse_const_value(parser) if skip(parser, TokenKind.EQUALS) else UndefinedDefaultValue,
         directives=parse_directives(parser),
         loc=loc(parser, start),
     )
