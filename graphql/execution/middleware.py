@@ -8,11 +8,12 @@ MIDDLEWARE_RESOLVER_FUNCTION = 'resolve'
 
 
 class MiddlewareManager(object):
+    __slots__ = "middlewares", "wrap_in_promise", "_middleware_resolvers", "_cached_resolvers"
 
     def __init__(self, *middlewares, **kwargs):
         self.middlewares = middlewares
         self.wrap_in_promise = kwargs.get('wrap_in_promise', True)
-        self._middleware_resolvers = list(get_middleware_resolvers(middlewares))
+        self._middleware_resolvers = list(get_middleware_resolvers(middlewares)) if middlewares else []
         self._cached_resolvers = {}
 
     def get_field_resolver(self, field_resolver):

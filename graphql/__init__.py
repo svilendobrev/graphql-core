@@ -38,6 +38,7 @@ from .type import (  # no import order
     GraphQLInterfaceType,
     GraphQLUnionType,
     GraphQLEnumType,
+    GraphQLEnumValue,
     GraphQLInputObjectType,
     GraphQLList,
     GraphQLNonNull,
@@ -193,8 +194,18 @@ from .utils.base import (
     Undefined,
 )
 
+# Utilities for dynamic execution engines
+from .backend import (
+    GraphQLBackend,
+    GraphQLDocument,
+    GraphQLCoreBackend,
+    GraphQLDeciderBackend,
+    GraphQLCachedBackend,
+    get_default_backend,
+    set_default_backend,
+)
 
-VERSION = (2, 0, 1, 'final', 0)
+VERSION = (2, 1, 0, 'rc', 2)
 __version__ = get_version(VERSION)
 
 
@@ -203,6 +214,7 @@ __all__ = (
     'graphql',
     'GraphQLBoolean',
     'GraphQLEnumType',
+    'GraphQLEnumValue',
     'GraphQLFloat',
     'GraphQLID',
     'GraphQLInputObjectType',
@@ -282,4 +294,11 @@ __all__ = (
     'value_from_ast',
     'get_version',
     'Undefined',
+    'GraphQLBackend',
+    'GraphQLDocument',
+    'GraphQLCoreBackend',
+    'GraphQLDeciderBackend',
+    'GraphQLCachedBackend',
+    'get_default_backend',
+    'set_default_backend',
 )

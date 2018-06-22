@@ -5,6 +5,7 @@ from ..language import ast
 from ..pyutils.cached_property import cached_property
 from ..pyutils.ordereddict import OrderedDict
 from ..utils.assert_valid_name import assert_valid_name
+from ..utils.undefined import Undefined
 
 
 def is_type(type):
@@ -161,6 +162,7 @@ class GraphQLObjectType(GraphQLType):
             'bestFriend': GraphQLField(PersonType)
         })
     """
+
     def __init__(self, name, fields, interfaces=None, is_type_of=None, description=None):
         assert name, 'Type must be named.'
         assert_valid_name(name)
@@ -413,6 +415,12 @@ class GraphQLEnumType(GraphQLType):
 
         self.values = define_enum_values(self, values)
 
+    def get_values(self):
+        return self.values
+
+    def get_value(self, name):
+        return self._name_lookup.get(name)
+
     def serialize(self, value):
         if isinstance(value, collections.Hashable):
             enum_value = self._value_lookup.get(value)
@@ -463,7 +471,7 @@ def define_enum_values(type, value_map):
         )
         value = copy.copy(value)
         value.name = value_name
-        if value.value is None:
+        if value.value == Undefined:
             value.value = value_name
 
         values.append(value)
@@ -474,11 +482,15 @@ def define_enum_values(type, value_map):
 class GraphQLEnumValue(object):
     __slots__ = 'name', 'value', 'deprecation_reason', 'description'
 
-    def __init__(self, value=None, deprecation_reason=None, description=None, name=None):
+    def __init__(self, value=Undefined, deprecation_reason=None, description=None, name=None):
         self.name = name
         self.value = value
         self.deprecation_reason = deprecation_reason
         self.description = description
+
+    @property
+    def is_deprecated(self):
+        return bool(self.deprecation_reason)
 
     def __eq__(self, other):
         return (
@@ -513,6 +525,7 @@ class GraphQLInputObjectType(GraphQLType):
                     default_value=0)
             }
     """
+
     def __init__(self, name, fields, description=None, container_type=None):
         assert name, 'Type must be named.'
         self.name = name

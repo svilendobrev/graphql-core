@@ -2,6 +2,7 @@ import collections
 import functools
 import logging
 import sys
+import warnings
 from rx import Observable
 
 from six import string_types
@@ -28,9 +29,31 @@ def subscribe(*args, **kwargs):
     return execute(*args, allow_subscriptions=allow_subscriptions, **kwargs)
 
 
-def execute(schema, document_ast, root_value=None, context_value=None,
-            variable_values=None, operation_name=None, executor=None,
-            return_promise=False, middleware=None, allow_subscriptions=False):
+def execute(schema, document_ast, root=None, context=None,
+            variables=None, operation_name=None, executor=None,
+            return_promise=False, middleware=None, allow_subscriptions=False, **options):
+
+    if root is None and 'root_value' in options:
+        warnings.warn(
+            'root_value has been deprecated. Please use root=... instead.',
+            category=DeprecationWarning,
+            stacklevel=2
+        )
+        root = options['root_value']
+    if context is None and 'context_value' in options:
+        warnings.warn(
+            'context_value has been deprecated. Please use context=... instead.',
+            category=DeprecationWarning,
+            stacklevel=2
+        )
+        context = options['context_value']
+    if variables is None and 'variable_values' in options:
+        warnings.warn(
+            'variable_values has been deprecated. Please use values=... instead.',
+            category=DeprecationWarning,
+            stacklevel=2
+        )
+        variables = options['variable_values']
     assert schema, 'Must provide schema'
     assert isinstance(schema, GraphQLSchema), (
         'Schema must be an instance of GraphQLSchema. Also ensure that there are ' +
@@ -49,12 +72,12 @@ def execute(schema, document_ast, root_value=None, context_value=None,
     if executor is None:
         executor = SyncExecutor()
 
-    context = ExecutionContext(
+    exe_context = ExecutionContext(
         schema,
         document_ast,
-        root_value,
-        context_value,
-        variable_values,
+        root,
+        context,
+        variables or {},
         operation_name,
         executor,
         middleware,
@@ -62,26 +85,30 @@ def execute(schema, document_ast, root_value=None, context_value=None,
     )
 
     def executor(v):
-        return execute_operation(context, context.operation, root_value)
+        return execute_operation(exe_context, exe_context.operation, root)
 
     def on_rejected(error):
-        context.errors.append(error)
+        exe_context.errors.append(error)
         return None
 
     def on_resolve(data):
         if isinstance(data, Observable):
             return data
 
-        if not context.errors:
+        if not exe_context.errors:
             return ExecutionResult(data=data)
 
-        return ExecutionResult(data=data, errors=context.errors)
+        return ExecutionResult(data=data, errors=exe_context.errors)
 
     promise = Promise.resolve(None).then(executor).catch(on_rejected).then(on_resolve)
 
     if not return_promise:
-        context.executor.wait_until_finished()
+        exe_context.executor.wait_until_finished()
         return promise.get()
+    else:
+        clean = getattr(exe_context.executor, 'clean', None)
+        if clean:
+            clean()
 
     return promise
 
@@ -97,7 +124,7 @@ def execute_operation(exe_context, operation, root_value):
     )
 
     if operation.operation == 'mutation':
-        return execute_fields_serially(exe_context, type, root_value, fields)
+        return execute_fields_serially(exe_context, type, root_value, [], fields)
 
     if operation.operation == 'subscription':
         if not exe_context.allow_subscriptions:
@@ -106,12 +133,12 @@ def execute_operation(exe_context, operation, root_value):
                 "You will need to either use the subscribe function "
                 "or pass allow_subscriptions=True"
             )
-        return subscribe_fields(exe_context, type, root_value, fields)
+        return subscribe_fields(exe_context, type, root_value, fields,)
 
-    return execute_fields(exe_context, type, root_value, fields, None)
+    return execute_fields(exe_context, type, root_value, fields, [], None)
 
 
-def execute_fields_serially(exe_context, parent_type, source_value, fields):
+def execute_fields_serially(exe_context, parent_type, source_value, path, fields):
     def execute_field_callback(results, response_name):
         field_asts = fields[response_name]
         result = resolve_field(
@@ -119,7 +146,8 @@ def execute_fields_serially(exe_context, parent_type, source_value, fields):
             parent_type,
             source_value,
             field_asts,
-            None
+            None,
+            path+[response_name]
         )
         if result is Undefined:
             return results
@@ -140,13 +168,13 @@ def execute_fields_serially(exe_context, parent_type, source_value, fields):
     return functools.reduce(execute_field, fields.keys(), Promise.resolve(collections.OrderedDict()))
 
 
-def execute_fields(exe_context, parent_type, source_value, fields, info):
+def execute_fields(exe_context, parent_type, source_value, fields, path, info):
     contains_promise = False
 
     final_results = OrderedDict()
 
     for response_name, field_asts in fields.items():
-        result = resolve_field(exe_context, parent_type, source_value, field_asts, info)
+        result = resolve_field(exe_context, parent_type, source_value, field_asts, info, path + [response_name])
         if result is Undefined:
             continue
 
@@ -179,8 +207,7 @@ def subscribe_fields(exe_context, parent_type, source_value, fields):
     # assert len(fields) == 1, "Can only subscribe one element at a time."
 
     for response_name, field_asts in fields.items():
-
-        result = subscribe_field(exe_context, parent_type, source_value, field_asts)
+        result = subscribe_field(exe_context, parent_type, source_value, field_asts, [response_name])
         if result is Undefined:
             continue
 
@@ -197,7 +224,7 @@ def subscribe_fields(exe_context, parent_type, source_value, fields):
     return Observable.merge(observables)
 
 
-def resolve_field(exe_context, parent_type, source, field_asts, parent_info):
+def resolve_field(exe_context, parent_type, source, field_asts, parent_info, field_path):
     field_ast = field_asts[0]
     field_name = field_ast.name.value
 
@@ -233,7 +260,7 @@ def resolve_field(exe_context, parent_type, source, field_asts, parent_info):
         operation=exe_context.operation,
         variable_values=exe_context.variable_values,
         context=context,
-        path=parent_info.path+[field_name] if parent_info else [field_name]
+        path=field_path
     )
 
     executor = exe_context.executor
@@ -244,11 +271,12 @@ def resolve_field(exe_context, parent_type, source, field_asts, parent_info):
         return_type,
         field_asts,
         info,
+        field_path,
         result
     )
 
 
-def subscribe_field(exe_context, parent_type, source, field_asts):
+def subscribe_field(exe_context, parent_type, source, field_asts, path):
     field_ast = field_asts[0]
     field_name = field_ast.name.value
 
@@ -284,7 +312,7 @@ def subscribe_field(exe_context, parent_type, source, field_asts):
         operation=exe_context.operation,
         variable_values=exe_context.variable_values,
         context=context,
-        path=[field_name]
+        path=path
     )
 
     executor = exe_context.executor
@@ -304,6 +332,7 @@ def subscribe_field(exe_context, parent_type, source, field_asts):
         return_type,
         field_asts,
         info,
+        path,
     ))
 
 
@@ -318,16 +347,16 @@ def resolve_or_error(resolve_fn, source, info, args, executor):
         return e
 
 
-def complete_value_catching_error(exe_context, return_type, field_asts, info, result):
+def complete_value_catching_error(exe_context, return_type, field_asts, info, path, result):
     # If the field type is non-nullable, then it is resolved without any
     # protection from errors.
     if isinstance(return_type, GraphQLNonNull):
-        return complete_value(exe_context, return_type, field_asts, info, result)
+        return complete_value(exe_context, return_type, field_asts, info, path, result)
 
     # Otherwise, error protection is applied, logging the error and
     # resolving a null value for this field if one is encountered.
     try:
-        completed = complete_value(exe_context, return_type, field_asts, info, result)
+        completed = complete_value(exe_context, return_type, field_asts, info, path, result)
         if is_thenable(completed):
             def handle_error(error):
                 traceback = completed._traceback
@@ -343,7 +372,7 @@ def complete_value_catching_error(exe_context, return_type, field_asts, info, re
         return None
 
 
-def complete_value(exe_context, return_type, field_asts, info, result):
+def complete_value(exe_context, return_type, field_asts, info, path, result):
     """
     Implements the instructions for completeValue as defined in the
     "Field entries" section of the spec.
@@ -371,18 +400,19 @@ def complete_value(exe_context, return_type, field_asts, info, result):
                 return_type,
                 field_asts,
                 info,
+                path,
                 resolved
             ),
             lambda error: Promise.rejected(
-                GraphQLLocatedError(field_asts, original_error=error))
+                GraphQLLocatedError(field_asts, original_error=error, path=path))
         )
 
     # print return_type, type(result)
     if isinstance(result, Exception):
-        raise GraphQLLocatedError(field_asts, original_error=result)
+        raise GraphQLLocatedError(field_asts, original_error=result, path=path)
 
     if isinstance(return_type, GraphQLNonNull):
-        return complete_nonnull_value(exe_context, return_type, field_asts, info, result)
+        return complete_nonnull_value(exe_context, return_type, field_asts, info, path, result)
 
     # If result is null-like, return null.
     if result is None:
@@ -390,24 +420,24 @@ def complete_value(exe_context, return_type, field_asts, info, result):
 
     # If field type is List, complete each item in the list with the inner type
     if isinstance(return_type, GraphQLList):
-        return complete_list_value(exe_context, return_type, field_asts, info, result)
+        return complete_list_value(exe_context, return_type, field_asts, info, path, result)
 
     # If field type is Scalar or Enum, serialize to a valid value, returning
     # null if coercion is not possible.
     if isinstance(return_type, (GraphQLScalarType, GraphQLEnumType)):
-        return complete_leaf_value(return_type, result)
+        return complete_leaf_value(return_type, path, result)
 
     if isinstance(return_type, (GraphQLInterfaceType, GraphQLUnionType)):
-        return complete_abstract_value(exe_context, return_type, field_asts, info, result)
+        return complete_abstract_value(exe_context, return_type, field_asts, info, path, result)
 
     if isinstance(return_type, GraphQLObjectType):
-        return complete_object_value(exe_context, return_type, field_asts, info, result)
+        return complete_object_value(exe_context, return_type, field_asts, info, path, result)
 
     assert False, u'Cannot complete value of unexpected type "{}".'.format(
         return_type)
 
 
-def complete_list_value(exe_context, return_type, field_asts, info, result):
+def complete_list_value(exe_context, return_type, field_asts, info, path, result):
     """
     Complete a list value by completing each item in the list with the inner type
     """
@@ -420,10 +450,8 @@ def complete_list_value(exe_context, return_type, field_asts, info, result):
     contains_promise = False
 
     index = 0
-    path = info.path[:]
     for item in result:
-        info.path = path + [index]
-        completed_item = complete_value_catching_error(exe_context, item_type, field_asts, info, item)
+        completed_item = complete_value_catching_error(exe_context, item_type, field_asts, info, path + [index], item, )
         if not contains_promise and is_thenable(completed_item):
             contains_promise = True
 
@@ -433,17 +461,23 @@ def complete_list_value(exe_context, return_type, field_asts, info, result):
     return Promise.all(completed_results) if contains_promise else completed_results
 
 
-def complete_leaf_value(return_type, result):
+def complete_leaf_value(return_type, path, result):
     """
     Complete a Scalar or Enum by serializing to a valid value, returning null if serialization is not possible.
     """
-    # serialize = getattr(return_type, 'serialize', None)
-    # assert serialize, 'Missing serialize method on type'
+    assert hasattr(return_type, 'serialize'), 'Missing serialize method on type'
+    serialized_result = return_type.serialize(result)
 
-    return return_type.serialize(result)
+    if serialized_result is None:
+        raise GraphQLError(
+            ('Expected a value of type "{}" but ' +
+             'received: {}').format(return_type, result),
+            path=path
+        )
+    return serialized_result
 
 
-def complete_abstract_value(exe_context, return_type, field_asts, info, result):
+def complete_abstract_value(exe_context, return_type, field_asts, info, path, result):
     """
     Complete an value of an abstract type by determining the runtime type of that value, then completing based
     on that type.
@@ -481,7 +515,7 @@ def complete_abstract_value(exe_context, return_type, field_asts, info, result):
             field_asts
         )
 
-    return complete_object_value(exe_context, runtime_type, field_asts, info, result)
+    return complete_object_value(exe_context, runtime_type, field_asts, info, path, result)
 
 
 def get_default_resolve_type_fn(value, info, abstract_type):
@@ -491,7 +525,7 @@ def get_default_resolve_type_fn(value, info, abstract_type):
             return type
 
 
-def complete_object_value(exe_context, return_type, field_asts, info, result):
+def complete_object_value(exe_context, return_type, field_asts, info, path, result):
     """
     Complete an Object value by evaluating all sub-selections.
     """
@@ -504,21 +538,22 @@ def complete_object_value(exe_context, return_type, field_asts, info, result):
 
     # Collect sub-fields to execute to complete this value.
     subfield_asts = exe_context.get_sub_fields(return_type, field_asts)
-    return execute_fields(exe_context, return_type, result, subfield_asts, info)
+    return execute_fields(exe_context, return_type, result, subfield_asts, path, info)
 
 
-def complete_nonnull_value(exe_context, return_type, field_asts, info, result):
+def complete_nonnull_value(exe_context, return_type, field_asts, info, path, result):
     """
     Complete a NonNull value by completing the inner type
     """
     completed = complete_value(
-        exe_context, return_type.of_type, field_asts, info, result
+        exe_context, return_type.of_type, field_asts, info, path, result
     )
     if completed is None:
         raise GraphQLError(
             'Cannot return null for non-nullable field {}.{}.'.format(
                 info.parent_type, info.field_name),
-            field_asts
+            field_asts,
+            path=path
         )
 
     return completed
