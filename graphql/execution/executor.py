@@ -10,7 +10,7 @@ from promise import Promise, promise_for_dict, is_thenable
 from ..error import GraphQLError, GraphQLLocatedError
 from ..pyutils.default_ordered_dict import DefaultOrderedDict
 from ..pyutils.ordereddict import OrderedDict
-from ..utils.undefined import Undefined
+from ..utils.undefined import Undefined, UndefinedDefaultValue
 from ..type import (GraphQLEnumType, GraphQLInterfaceType, GraphQLList,
                     GraphQLNonNull, GraphQLObjectType, GraphQLScalarType,
                     GraphQLSchema, GraphQLUnionType)
@@ -238,6 +238,9 @@ def resolve_field(exe_context, parent_type, source, field_asts, parent_info):
 
     executor = exe_context.executor
     result = resolve_or_error(resolve_fn_middleware, source, info, args, executor)
+
+    if result is UndefinedDefaultValue:
+        return Undefined
 
     return complete_value_catching_error(
         exe_context,
