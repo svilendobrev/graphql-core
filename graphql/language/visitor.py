@@ -4,6 +4,7 @@ import six
 
 from . import ast
 from .visitor_meta import QUERY_DOCUMENT_KEYS, VisitorMeta
+from ..utils.undefined import UndefinedDefaultValue
 
 # Necessary for static type checking
 if False:  # flake8: noqa
@@ -92,6 +93,8 @@ def visit(root, visitor, key_map=None):
                         else:
                             setattr(node, edit_key, edit_value)  # type: ignore
 
+            if not stack:
+                break
             index = stack.index  # type: ignore
             keys = stack.keys  # type: ignore
             edits = stack.edits  # type: ignore
@@ -110,7 +113,7 @@ def visit(root, visitor, key_map=None):
                 key = None
                 node = new_root  # type: ignore
 
-            if node is REMOVE or node is None:
+            if node is REMOVE or node is None or node is UndefinedDefaultValue:
                 continue
 
             if parent:

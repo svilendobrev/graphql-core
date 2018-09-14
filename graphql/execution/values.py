@@ -17,6 +17,7 @@ from ..type import (
 from ..utils.is_valid_value import is_valid_value
 from ..utils.type_from_ast import type_from_ast
 from ..utils.value_from_ast import value_from_ast
+from ..utils.undefined import UndefinedDefaultValue
 
 # Necessary for static type checking
 if False:  # flake8: noqa
@@ -53,7 +54,7 @@ def get_variable_values(
                 [def_ast],
             )
         elif value is None:
-            if def_ast.default_value is not None:
+            if def_ast.default_value is not UndefinedDefaultValue:
                 values[var_name] = value_from_ast(
                     def_ast.default_value, var_type
                 )  # type: ignore
@@ -106,7 +107,7 @@ def get_argument_values(
         arg_type = arg_def.type
         arg_ast = arg_ast_map.get(name)
         if name not in arg_ast_map:
-            if arg_def.default_value is not None:
+            if arg_def.default_value is not UndefinedDefaultValue:
                 result[arg_def.out_name or name] = arg_def.default_value
                 continue
             elif isinstance(arg_type, GraphQLNonNull):
@@ -120,7 +121,7 @@ def get_argument_values(
             variable_name = arg_ast.value.name.value  # type: ignore
             if variables and variable_name in variables:
                 result[arg_def.out_name or name] = variables[variable_name]
-            elif arg_def.default_value is not None:
+            elif arg_def.default_value is not UndefinedDefaultValue:
                 result[arg_def.out_name or name] = arg_def.default_value
             elif isinstance(arg_type, GraphQLNonNull):
                 raise GraphQLError(
@@ -134,7 +135,7 @@ def get_argument_values(
         else:
             value = value_from_ast(arg_ast.value, arg_type, variables)  # type: ignore
             if value is None:
-                if arg_def.default_value is not None:
+                if arg_def.default_value is not UndefinedDefaultValue:
                     value = arg_def.default_value
                     result[arg_def.out_name or name] = value
             else:
@@ -171,7 +172,7 @@ def coerce_value(type, value):
         obj = {}
         for field_name, field in fields.items():
             if field_name not in value:
-                if field.default_value is not None:
+                if field.default_value is not UndefinedDefaultValue:
                     field_value = field.default_value
                     obj[field.out_name or field_name] = field_value
             else:

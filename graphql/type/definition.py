@@ -6,6 +6,7 @@ from ..pyutils.cached_property import cached_property
 from ..pyutils.ordereddict import OrderedDict
 from ..pyutils.compat import Enum as PyEnum
 from ..utils.assert_valid_name import assert_valid_name
+from ..utils.undefined import UndefinedDefaultValue
 from ..utils.undefined import Undefined
 
 # Necessary for static type checking
@@ -337,7 +338,7 @@ class GraphQLArgument(object):
     def __init__(
         self,
         type,  # type: Union[GraphQLInputObjectType, GraphQLNonNull, GraphQLList, GraphQLScalarType]
-        default_value=None,  # type: Optional[Any]
+        default_value=UndefinedDefaultValue,  # type: Optional[Any]
         description=None,  # type: Optional[Any]
         out_name=None,  # type: Optional[str]
     ):
@@ -680,7 +681,7 @@ class GraphQLInputObjectField(object):
     def __init__(
         self,
         type,  # type: Union[GraphQLInputObjectType, GraphQLScalarType]
-        default_value=None,  # type: Optional[Any]
+        default_value=UndefinedDefaultValue,  # type: Optional[Any]
         description=None,  # type: Optional[Any]
         out_name=None,  # type: str
     ):

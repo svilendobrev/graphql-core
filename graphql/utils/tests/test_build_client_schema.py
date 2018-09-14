@@ -71,6 +71,11 @@ def test_builds_a_simple_schema_with_both_operation_types():
                 GraphQLString,
                 description="Set the string field",
                 args={"value": GraphQLArgument(GraphQLString)},
+            ),
+            "setStringDefault": GraphQLField(
+                GraphQLString,
+                description='Set the string field',
+                args={ 'value_default': GraphQLArgument(GraphQLString, default_value=None) }
             )
         },
     )
@@ -457,6 +462,15 @@ def test_builds_a_schema_with_field_arguments_with_default_values():
                             },
                         ),
                     ),
+                ('defaultNullInt', GraphQLField(
+                    GraphQLString,
+                    args={
+                        'intArg': GraphQLArgument(
+                            GraphQLInt,
+                            default_value=None
+                        )
+                    }
+                )),
                     (
                         "defaultList",
                         GraphQLField(

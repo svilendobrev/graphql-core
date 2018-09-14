@@ -4,6 +4,7 @@ from . import ast
 from ..error import GraphQLSyntaxError
 from .lexer import Lexer, TokenKind, get_token_desc, get_token_kind_desc
 from .source import Source
+from ..utils.undefined import UndefinedDefaultValue
 
 # Necessary for static type checking
 if False:  # flake8: noqa
@@ -54,6 +55,8 @@ __all__ = ["parse"]
 def parse(source, **kwargs):
     # type: (Union[Source, str], **Any) -> Document
     """Given a GraphQL source, parses it into a Document."""
+    if source is None:
+        return source
     options = {"no_location": False, "no_source": False}
     options.update(kwargs)
 
@@ -67,6 +70,8 @@ def parse(source, **kwargs):
 
 
 def parse_value(source, **kwargs):
+    if source is None:
+        return source
     options = {"no_location": False, "no_source": False}
     options.update(kwargs)
     source_obj = source
@@ -340,7 +345,7 @@ def parse_variable_definition(parser):
         type=expect(parser, TokenKind.COLON) and parse_type(parser),
         default_value=parse_value_literal(parser, True)
         if skip(parser, TokenKind.EQUALS)
-        else None,
+        else UndefinedDefaultValue,
         loc=loc(parser, start),
     )
 
@@ -495,17 +500,16 @@ def parse_value_literal(parser, is_const):
         )
 
     elif token.kind == TokenKind.NAME:
+        advance(parser)
         if token.value in ("true", "false"):
-            advance(parser)
             return ast.BooleanValue(  # type: ignore
                 value=token.value == "true", loc=loc(parser, token.start)
             )
 
-        if token.value != "null":
-            advance(parser)
-            return ast.EnumValue(  # type: ignore
-                value=token.value, loc=loc(parser, token.start)
-            )
+        if token.value == 'null':
+            return ast.NullValue(loc=loc(parser, token.start))
+
+        return ast.EnumValue(value=token.value, loc=loc(parser, token.start))
 
     elif token.kind == TokenKind.DOLLAR:
         if not is_const:
@@ -756,7 +760,7 @@ def parse_input_value_def(parser):
         type=expect(parser, TokenKind.COLON) and parse_type(parser),
         default_value=parse_const_value(parser)
         if skip(parser, TokenKind.EQUALS)
-        else None,
+        else UndefinedDefaultValue,
         directives=parse_directives(parser),
         loc=loc(parser, start),
     )
